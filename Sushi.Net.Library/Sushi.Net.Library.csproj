@@ -1,32 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
-    <Version>0.9.2</Version>
-    <Authors>Máximo Piva</Authors>
-    <Company />
+    <TargetFramework>net7.0</TargetFramework>
+    <Version>0.1</Version>
+    <Authors>BReza27</Authors>
+    <Company>Reza Encodes</Company>
     <Product />
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Copyright>Copyright © 2020 Máximo Piva</Copyright>
+    <Copyright></Copyright>
     <Description>Sushi.Net Library
 Automatic Subtitle &amp; Audio Shifter
 It can shift subtitles based on two different audio streams using pattern matching.
 Or it can shift in chunks a foreign/original audio stream to match another foreign/original audio stream using the ambience sound pattern matching.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/maxpiva/Sushi.Net</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/BReza27/Sushi.Net</PackageProjectUrl>
     <PackageIcon>sushi.png</PackageIcon>
-    <RepositoryUrl>https://github.com/maxpiva/Sushi.Net</RepositoryUrl>
+    <RepositoryUrl>https://github.com/BReza27/Sushi.Net</RepositoryUrl>
     <PackageTags>.net sushi subtitle audio shifter</PackageTags>
-    <AssemblyVersion>0.9.2.0</AssemblyVersion>
-    <FileVersion>0.9.2.0</FileVersion>
+    <AssemblyVersion>0.1</AssemblyVersion>
+    <FileVersion>0.1</FileVersion>
+    <BaseOutputPath>C:\Users\Reza\Documents\Sushi Development\BReza27\Sushi.Net\build</BaseOutputPath>
+    <BaseIntermediateOutputPath>C:\Users\Reza\Documents\Sushi Development\BReza27\Sushi.Net\build\obj\Sushi.net</BaseIntermediateOutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <ItemGroup>

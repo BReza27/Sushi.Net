@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Collections.Generic;
 using OpenCvSharp;
-using Sushi.Net.Library.Audio;
 
 namespace Sushi.Net.Library.LibIO
 {
@@ -88,38 +87,24 @@ namespace Sushi.Net.Library.LibIO
 
 
 
-        public (long position, float difference) MatchTemplate(Mat<float> output, CVMatrix pattern, Mode mode=Mode.SqDiffNormed)
+        public (long position, float difference) MatchTemplate(Mat<float> output, CVMatrix pattern, bool type = false)
         {
             int size = (int) (Size - pattern.Size + 1);
+            TemplateMatchModes tp = type ? TemplateMatchModes.SqDiffNormed : TemplateMatchModes.CCoeffNormed;
+            float f = float.MaxValue;
             int pos = 0;
-            float f;
             using (CVInputArray inp = AsDisposableInputArray())
             using (CVInputArray pat = pattern.AsDisposableInputArray())
             {
-                Cv2.MatchTemplate(inp.Array, pat.Array, OutputArray.Create(output), (TemplateMatchModes) mode);
+                Cv2.MatchTemplate(inp.Array, pat.Array, OutputArray.Create(output), tp);
+
                 MatIndexer<float> or = output.GetIndexer();
-                if (mode == Mode.SqDiffNormed || mode == Mode.SqDiff)
+                for (int x = 0; x < size; x++)
                 {
-                    f = float.MaxValue;
-                    for (int x = 0; x < size; x++)
+                    if (or[x, 0] < f)
                     {
-                        if (or[x, 0] < f)
-                        {
-                            f = or[x, 0];
-                            pos = x;
-                        }
-                    }
-                }
-                else
-                {
-                    f = float.MinValue;
-                    for (int x = 0; x < size; x++)
-                    {
-                        if (or[x, 0] > f)
-                        {
-                            f = or[x, 0];
-                            pos = x;
-                        }
+                        f = or[x, 0];
+                        pos = x;
                     }
                 }
             }

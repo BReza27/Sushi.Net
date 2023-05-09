@@ -65,7 +65,6 @@ namespace Sushi.Net.Library
                     args.MaxWindow = args.Window;
                 if (args.MaxWindow == args.Window)
                     args.MaxWindow++;
-                args.Mode ??= args.Type?.ToLowerInvariant() == "audio" ? Mode.CCoeffNormed : Mode.SqDiffNormed;
                 args.Output = args.Output.Strip();
                 args.Src.CheckFileExists("Source");
                 args.Dst.CheckFileExists("Destination");
@@ -110,6 +109,8 @@ namespace Sushi.Net.Library
         {
             Mux src_mux = new Mux(_demuxer, args.Src, _logger);
             Mux dst_mux = new Mux(_demuxer, args.Dst, _logger);
+            Mux sync_mux = new Mux(_demuxer, args.Sync, _logger);
+
 
             try
             {
@@ -117,6 +118,8 @@ namespace Sushi.Net.Library
 
                 await src_mux.GetMediaInfoAsync().ConfigureAwait(false);
                 await dst_mux.GetMediaInfoAsync().ConfigureAwait(false);
+                await sync_mux.GetMediaInfoAsync().ConfigureAwait(false);
+                    
                 temp_path.NormalizePath().CreateDirectoryIfNotExists();
                 if (args.Output == null)
                     args.Output = Environment.CurrentDirectory;
@@ -124,19 +127,29 @@ namespace Sushi.Net.Library
                     args.Output.NormalizePath().CreateDirectoryIfNotExists();
                 _logger.LogInformation("Finding Chunks in Destination...");
                 List<(float start, float end)> silences = await dst_mux.FindSilencesAsync(args.DstAudioIndex, args.SilenceMinLength, args.SilenceThreshold);
-                AudioProvider src_audio = new AudioProvider(_reader, src_mux, args.SrcAudioIndex, args.SampleRate, args.SampleType, 0, AudioPostProcess.AudioSearch, temp_path, args.Output);
+                AudioProvider src_audio = new AudioProvider(_reader, src_mux, args.SrcAudioIndex, args.SampleRate, args.SampleType, 0, AudioPostProcess.AudioSearch, temp_path);
                 AudioProvider dst_audio = new AudioProvider(_reader, dst_mux, args.DstAudioIndex, args.SampleRate, args.SampleType, 0, AudioPostProcess.AudioSearch, temp_path);
+                AudioProvider sync_audio = new AudioProvider(_reader, sync_mux, args.SyncAudioIndex, args.SampleRate, args.SampleType, 0, AudioPostProcess.AudioSearch, temp_path, args.Output);
+                _logger.LogInformation($"Loading sync Audio {sync_audio.Path}...");
+                using (AudioStream sync_stream = await sync_audio.ObtainAsync().ConfigureAwait(false));
                 _logger.LogInformation($"Loading Destination Audio {dst_audio.Path}...");
                 using (AudioStream dst_stream = await dst_audio.ObtainAsync().ConfigureAwait(false))
+                
+
+
+
                 {
                     _logger.LogInformation($"Loading Source Audio {src_audio.Path}...");
                     AudioEvents events;
                     using (AudioStream src_stream = await src_audio.ObtainAsync().ConfigureAwait(false))
+                    
+
+                           
                     {
                         events = new AudioEvents(silences, dst_stream.DurationInSeconds);
                         List<List<Event>> search_groups = _grouping.PrepareSearchGroups(events.Events, src_stream.DurationInSeconds, new List<float>(), args.MaxTsDuration, args.MaxTsDistance);
-                        _logger.LogInformation($"Calculating Audio Shifts [with {args.Mode.Value.ToString()}] for {src_audio.Path}...");
-                        await _shifter.CalculateShiftsAsync(dst_stream, src_stream, search_groups, args.Window, args.MaxWindow, 1, args.AudioAllowedDifference, args.Mode.Value).ConfigureAwait(false);
+                        _logger.LogInformation($"Calculating Audio Shifts for {src_audio.Path}...");
+                        await _shifter.CalculateShiftsAsync(dst_stream, src_stream, search_groups, args.Window, args.MaxWindow, 1, args.AudioAllowedDifference).ConfigureAwait(false);
                     }
 
                     _logger.LogInformation($"Reloading Source Audio {src_audio.Path}...");
@@ -158,8 +171,9 @@ namespace Sushi.Net.Library
                         List<Split> splits = _manipulation.CreateSplits(events.Events, dst_stream.DurationInSeconds);
                         if (!args.DryRun)
                         {
-                            _logger.LogInformation($"Rejoining shifted audio into {src_audio.OutputPath}...");
-                            await src_audio.ShiftAudioAsync(splits);
+                            _logger.LogInformation($"Rejoining shifted audio into {sync_audio.OutputPath}...");
+                            _logger.LogInformation("TEST");
+                            await sync_audio.ShiftAudioAsync(splits);
                         }
                     }
                 }
@@ -262,8 +276,8 @@ namespace Sushi.Net.Library
                             _logger.LogInformation($"Loading Subtitle {sub_provider.Path}...");
                             IEvents sub = await sub_provider.ObtainAsync().ConfigureAwait(false);
                             List<List<Event>> search_groups = _grouping.PrepareSearchGroups(sub.Events, src_stream.DurationInSeconds, chapter_times, args.MaxTsDuration, args.MaxTsDistance);
-                            _logger.LogInformation($"Calculating Subtitle Shifts [with {args.Mode.Value.ToString()}] for {sub_provider.Path}...");
-                            await _shifter.CalculateShiftsAsync(src_stream, dst_stream, search_groups, args.Window, args.MaxWindow, !args.NoGrouping ? args.RewindThresh : 0, args.AllowedDifference, args.Mode.Value).ConfigureAwait(false);
+                            _logger.LogInformation($"Calculating Subtitle Shifts for {sub_provider.Path}...");
+                            await _shifter.CalculateShiftsAsync(src_stream, dst_stream, search_groups, args.Window, args.MaxWindow, !args.NoGrouping ? args.RewindThresh : 0, args.AllowedDifference).ConfigureAwait(false);
                             List<Event> events = sub.Events;
                             List<List<Event>> groups = _grouping.GroupWithChapters(events, chapter_times, ignore_chapters, !args.NoGrouping, args.SmoothRadius, args.AllowedDifference, args.MaxGroupStd);
                             if (args.SrcKeyframes != null || args.MakeSrcKeyframes)
