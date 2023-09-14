@@ -53,10 +53,9 @@ namespace Sushi.Net.Library.Tools
         private static readonly Regex SilenceRegex = new Regex("\\[silencedetect.*?silence_start:(.*?)\n.*?silence_end:(.*?)\\|", RegexOptions.Compiled | RegexOptions.Singleline);
 
        
-        private static string filtervoicetrue = "bandreject=\"f=900:width_type=h:w=600\"";
+        private static string filtervoicetrue = "highpass=200,lowpass=3000";
         private static string filtervoicefalse = "";
 
-        //private static string invertright = "pan=\"stereo|c0=c0|c1=-1*c1\"";
 
         public async Task<(List<(float start, float end)>, float vol)> FindSilencesAsync(string file, int? index, float silence_length, int silence_threshold)
         {
@@ -177,7 +176,6 @@ namespace Sushi.Net.Library.Tools
                     args.Add($"-map 0:{mux.VideoStream.Id} -f mkvtimestamp_v2 " + mux.TimeCodesPath.Quote());
                 string arguments = string.Join(" ", args);
                 Command cmd = Command.WithArguments(arguments);
-                Console.WriteLine(cmd);
                 await ExecuteAsync(cmd, true, new FFMpegPercentageProcessor()).ConfigureAwait(false);
             }
             catch

@@ -28,7 +28,7 @@ namespace Sushi.Net.Library.Settings
         public int? SyncAudioIndex { get; set; }
 
         [CommandLine("--sync", null, "Extra audio steam to sync based on src and dst. Defaults to src")]
-        public string Sync { get; set} 
+        public string Sync { get; set; }
 
 
         [CommandLine("--window", 10, "Search window size.", "seconds")]
@@ -140,7 +140,8 @@ namespace Sushi.Net.Library.Settings
         [CommandLine("--dry-run", false, "Run the program without output.")]
         public bool DryRun { get; set;
 
-    }
+        }
 
+    }
 }
 
