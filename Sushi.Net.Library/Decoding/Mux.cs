@@ -7,10 +7,13 @@ using Sushi.Net.Library.Audio;
 using Sushi.Net.Library.Common;
 using Sushi.Net.Library.Events;
 using Sushi.Net.Library.Media;
+using Sushi.Net.Library.Settings;
+
+
 
 namespace Sushi.Net.Library.Decoding
-{
-    public class Mux
+{ 
+    public class Mux 
     {
         private Demuxer _demuxer;
         private ILogger _logger;
@@ -33,12 +36,14 @@ namespace Sushi.Net.Library.Decoding
         public bool WriteChapters { get; private set; }
         public MediaInfo MediaInfo { get; private set; }
         public bool HasVideo => !IsWav && MediaInfo.Videos.Count > 0;
-        public bool HasSubtitles => !IsWav && MediaInfo.Subtitles.Count>0;
+        public bool HasSubtitles => !IsWav && MediaInfo.Subtitles.Count > 0;
         public bool Processed { get; private set; }
-
+ 
+        public bool UseVoices { get; private set; }       
+        
         public float NormalizeGain { get; private set; }
         public AudioPostProcess AudioProcess { get; private set; }
-        
+
         internal Mux(Demuxer demuxer, string path, ILogger logger)
         {
             _logger = logger;
@@ -58,16 +63,16 @@ namespace Sushi.Net.Library.Decoding
         {
             return _demuxer.ShiftAudioAsync(this, outputpath, splits);
         }
-        
+
         internal async Task<List<(float start, float end)>> FindSilencesAsync(int? index, float silence_length, int silence_threshold)
         {
-            (List<(float start, float end)> l, float val)=await _demuxer.FindSilencesAsync(Path, index, silence_length, silence_threshold).ConfigureAwait(false);
+            (List<(float start, float end)> l, float val) = await _demuxer.FindSilencesAsync(Path, index, silence_length, silence_threshold).ConfigureAwait(false);
             NormalizeGain = val;
             return l;
-            
+
 
         }
-        private static string FormatStream<T>(T stream) where T: MediaStreamInfo
+        private static string FormatStream<T>(T stream) where T : MediaStreamInfo
         {
             string rtitle = !string.IsNullOrEmpty(stream.Title) ? " (" + stream.Title + ")" : "";
             return $"{stream.Id}{rtitle}: {stream.Info}";
@@ -79,7 +84,7 @@ namespace Sushi.Net.Library.Decoding
         }
         private T SelectStream<T>(List<T> streams, int? idx, string name) where T : MediaStreamInfo
         {
-            if (streams==null || streams.Count==0)
+            if (streams == null || streams.Count == 0)
                 throw new SushiException($"No {name} streams found in {Path}");
             if (!idx.HasValue)
             {
@@ -98,7 +103,7 @@ namespace Sushi.Net.Library.Decoding
             }
 
             T stream = streams.FirstOrDefault(a => a.Id == idx.Value);
-            if (stream==null)
+            if (stream == null)
                 throw new SushiException($"Stream with index {idx.Value} doesn't exist in {Path}.\nHere are all that do:\n{FormatStreamList(streams)}");
             return stream;
 
@@ -107,7 +112,7 @@ namespace Sushi.Net.Library.Decoding
 
 
 
-        public void SetAudio(int? stream_idx, string output_path, int? sample_rate, AudioPostProcess process=AudioPostProcess.SubtitleSearch)
+        public void SetAudio(int? stream_idx, string output_path, int? sample_rate, AudioPostProcess process = AudioPostProcess.SubtitleSearch)
         {
             AudioStream = SelectStream(MediaInfo.Audios, stream_idx, "audio");
             AudioPath = output_path;
@@ -150,7 +155,7 @@ namespace Sushi.Net.Library.Decoding
             return _demuxer.ProcessAsync(this);
         }
 
-        
+
         public void CleanUp()
         {
             if (DemuxAudio)

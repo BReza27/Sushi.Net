@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -15,11 +16,16 @@ using Sushi.Net.Library.Common;
 using Sushi.Net.Library.Decoding;
 using Sushi.Net.Library.Events;
 using Sushi.Net.Library.Media;
+using Sushi.Net.Library.Settings;
 using Thinktecture.Extensions.Configuration;
+
+
+
+
 
 namespace Sushi.Net.Library.Tools
 {
-    
+
 
     public class FFMpeg : Tool
     {
@@ -31,7 +37,7 @@ namespace Sushi.Net.Library.Tools
 
 
         private static readonly Regex DurationRegex = new Regex(@"^\s+?DURATION.*?:(.*?)(\n|,|$)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private static readonly Regex CurrentRegex = new Regex(@"size.*?\stime=(.*?)\s",RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex CurrentRegex = new Regex(@"size.*?\stime=(.*?)\s", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         public FFMpeg(ILogger<FFMpeg> logger, IProgressLoggerFactory fact, IGlobalCancellation cancel, ILoggingConfiguration cfg) : base(logger, fact, cancel, cfg, ffmpeg)
         {
         }
@@ -43,25 +49,28 @@ namespace Sushi.Net.Library.Tools
             return ExecuteAsync(cmd);
         }
 
-        private static readonly Regex VolumeRegex = new Regex(@"\[Parsed_volumedetect.*?max_volume:(.*?)dB",RegexOptions.Compiled);
-        private static readonly Regex SilenceRegex = new Regex("\\[silencedetect.*?silence_start:(.*?)\n.*?silence_end:(.*?)\\|",RegexOptions.Compiled|RegexOptions.Singleline);
+        private static readonly Regex VolumeRegex = new Regex(@"\[Parsed_volumedetect.*?max_volume:(.*?)dB", RegexOptions.Compiled);
+        private static readonly Regex SilenceRegex = new Regex("\\[silencedetect.*?silence_start:(.*?)\n.*?silence_end:(.*?)\\|", RegexOptions.Compiled | RegexOptions.Singleline);
 
-        private static string filtervoice = "bandreject=\"f=900:width_type=h:w=600\"";
+       
+        private static string filtervoicetrue = "bandreject=\"f=900:width_type=h:w=600\"";
+        private static string filtervoicefalse = "";
+
         //private static string invertright = "pan=\"stereo|c0=c0|c1=-1*c1\"";
-      
-        public async Task<(List<(float start, float end)>,float vol)> FindSilencesAsync(string file, int? index, float silence_length, int silence_threshold)
+
+        public async Task<(List<(float start, float end)>, float vol)> FindSilencesAsync(string file, int? index, float silence_length, int silence_threshold)
         {
             CheckIfRequired(false);
             _logger.LogInformation("Finding maximum volume...");
-            Command cmd = Command.WithArguments("-hide_banner -i " + file.Quote()+" -af volumedetect -f null -").WithValidation(CommandResultValidation.None);
-            string res=await ExecuteAsync(cmd,true, new FFMpegPercentageProcessor()).ConfigureAwait(false);
+            Command cmd = Command.WithArguments("-hide_banner -i " + file.Quote() + " -af volumedetect -f null -").WithValidation(CommandResultValidation.None);
+            string res = await ExecuteAsync(cmd, true, new FFMpegPercentageProcessor()).ConfigureAwait(false);
             Match vol = VolumeRegex.Match(res);
             if (!vol.Success)
                 throw new SushiException($"Unable to find {file} volume");
             float val = -float.Parse(vol.Groups[1].Value.Trim());
             _logger.LogInformation($"Volume {-val}db. Finding silences...");
             cmd = Command.WithArguments($"-hide_banner -i " + file.Quote() + $" -af volume=volume={val.ToString(CultureInfo.InvariantCulture)}dB,silencedetect=noise={silence_threshold}dB:d={silence_length.ToString(CultureInfo.InvariantCulture)} -f null -").WithValidation(CommandResultValidation.None);
-            res=await ExecuteAsync(cmd, true, new FFMpegPercentageProcessor()).ConfigureAwait(false);
+            res = await ExecuteAsync(cmd, true, new FFMpegPercentageProcessor()).ConfigureAwait(false);
             MatchCollection coll = SilenceRegex.Matches(res);
             return (coll.Select(a => (float.Parse(a.Groups[1].Value), float.Parse(a.Groups[2].Value))).ToList(), val);
         }
@@ -79,8 +88,8 @@ namespace Sushi.Net.Library.Tools
                 int scnt = 0;
                 foreach (Split spl in splits.Where(a => a.IsSilence))
                 {
-                    long ustart = (long) (spl.DstStart * 1000000);
-                    long uend = (long) (spl.DstEnd * 1000000);
+                    long ustart = (long)(spl.DstStart * 1000000);
+                    long uend = (long)(spl.DstEnd * 1000000);
                     bld.Append($"anullsrc,atrim=0:{uend - ustart}us,asetpts=PTS-STARTPTS[s{scnt}];");
                     scnt++;
                 }
@@ -88,8 +97,8 @@ namespace Sushi.Net.Library.Tools
                 int acnt = 0;
                 foreach (Split spl in splits.Where(a => !a.IsSilence))
                 {
-                    long ustart = (long) (spl.SrcStart * 1000000);
-                    long uend = (long) (spl.SrcEnd * 1000000);
+                    long ustart = (long)(spl.SrcStart * 1000000);
+                    long uend = (long)(spl.SrcEnd * 1000000);
                     bld.Append($"[0]atrim={ustart}us:{uend}us,asetpts=PTS-STARTPTS[a{acnt}];");
                     acnt++;
                 }
@@ -115,7 +124,7 @@ namespace Sushi.Net.Library.Tools
                 args.Add(path.Quote());
                 string arguments = string.Join(" ", args);
                 Command cmd = Command.WithArguments(arguments);
-                await ExecuteAsync(cmd,true,new FFMpegPercentageProcessor()).ConfigureAwait(false);
+                await ExecuteAsync(cmd, true, new FFMpegPercentageProcessor()).ConfigureAwait(false);
             }
             catch
 
@@ -125,22 +134,31 @@ namespace Sushi.Net.Library.Tools
         }
 
 
-        public async Task DeMux(Mux mux)
+
+
+        public async Task DeMux(Mux mux)//SushiSettings filterargs
         {
+            
             try
             {
+
                 CheckIfRequired(false);
                 List<string> args = new List<string>();
                 args.Add("-hide_banner -i " + mux.Path.Quote() + " -y");
                 if (mux.AudioStream != null)
+
                 {
                     args.Add($"-map 0:{mux.AudioStream.Id}");
 
                     List<string> filters = new List<string>();
-                    if (mux.AudioProcess==AudioPostProcess.AudioSearch)
-                        filters.Add(filtervoice);
-                    if (filters.Count>0)
-                        args.Add("-af "+string.Join(",",filters));
+                    if (mux.AudioProcess == AudioPostProcess.AudioSearch)
+                        if (mux.UseVoices == true)
+                            filters.Add(filtervoicefalse);
+                    if (mux.UseVoices == false)
+                        filters.Add(filtervoicetrue);
+
+                    if (filters.Count > 0)
+                        args.Add("-af " + string.Join(",", filters));
                     if (mux.AudioRate.HasValue)
                         args.Add($"-ar {mux.AudioRate.Value}");
                     args.Add("-ac 1 -acodec pcm_s16le " + mux.AudioPath.Quote());
@@ -148,7 +166,7 @@ namespace Sushi.Net.Library.Tools
 
                 if (mux.ScriptStreams != null)
                 {
-                    for(int x=0;x<mux.ScriptStreams.Count;x++)
+                    for (int x = 0; x < mux.ScriptStreams.Count; x++)
                     {
                         args.Add($"-map 0:{mux.ScriptStreams[x].Id} " + mux.ScriptPaths[x].Quote());
 
@@ -159,7 +177,8 @@ namespace Sushi.Net.Library.Tools
                     args.Add($"-map 0:{mux.VideoStream.Id} -f mkvtimestamp_v2 " + mux.TimeCodesPath.Quote());
                 string arguments = string.Join(" ", args);
                 Command cmd = Command.WithArguments(arguments);
-                await ExecuteAsync(cmd,true,new FFMpegPercentageProcessor()).ConfigureAwait(false);
+                Console.WriteLine(cmd);
+                await ExecuteAsync(cmd, true, new FFMpegPercentageProcessor()).ConfigureAwait(false);
             }
             catch
             {
@@ -213,14 +232,14 @@ namespace Sushi.Net.Library.Tools
                 else
                 {
                     Match time = CurrentRegex.Match(line);
-                    if (time.Success && _duration>0)
+                    if (time.Success && _duration > 0)
                     {
-                        float r=time.Groups[1].Value.Trim().ParseAssTime();
+                        float r = time.Groups[1].Value.Trim().ParseAssTime();
                         r = r * 100 / _duration;
-                        _lastval = (int) Math.Round(r);
+                        _lastval = (int)Math.Round(r);
                     }
                 }
-                return Math.Min(_lastval,100);
+                return Math.Min(_lastval, 100);
             }
 
             public void Init()
@@ -228,7 +247,7 @@ namespace Sushi.Net.Library.Tools
                 _lastval = 0;
             }
         }
-        
+
 
     }
 }
