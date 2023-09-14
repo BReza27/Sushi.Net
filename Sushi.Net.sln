@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30717.126
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33627.172
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sushi.Net", "Sushi.Net\Sushi.Net.csproj", "{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}"
 EndProject
@@ -17,8 +17,8 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Debug|Any CPU.Build.0 = Release|Any CPU
 		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Debug|x64.ActiveCfg = Debug|x64
 		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Debug|x64.Build.0 = Debug|x64
 		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Debug|x86.ActiveCfg = Debug|x64
@@ -29,8 +29,8 @@ Global
 		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Release|x64.Build.0 = Release|x64
 		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Release|x86.ActiveCfg = Release|Any CPU
 		{B282E4DB-1BC3-4ACB-9B10-2F53DB75AC64}.Release|x86.Build.0 = Release|Any CPU
-		{02718D47-CA7C-438A-993A-97CE463B066E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{02718D47-CA7C-438A-993A-97CE463B066E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02718D47-CA7C-438A-993A-97CE463B066E}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{02718D47-CA7C-438A-993A-97CE463B066E}.Debug|Any CPU.Build.0 = Release|Any CPU
 		{02718D47-CA7C-438A-993A-97CE463B066E}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{02718D47-CA7C-438A-993A-97CE463B066E}.Debug|x64.Build.0 = Debug|Any CPU
 		{02718D47-CA7C-438A-993A-97CE463B066E}.Debug|x86.ActiveCfg = Debug|x86
